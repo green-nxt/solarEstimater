@@ -9,8 +9,11 @@ public class ShineMonitorController {
 
     @GetMapping("/hello")
     public String fetchCustomerData() {
-
         return "Hello World";
     }
 
+    @GetMapping
+    public void getGenerationByDate() {
+
+    }
 }

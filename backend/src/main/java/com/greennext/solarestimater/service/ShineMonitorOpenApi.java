@@ -1,11 +1,6 @@
 package com.greennext.solarestimater.service;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.security.Key;
-import java.security.MessageDigest;
+import com.greennext.solarestimater.util.CryptoUtil;
 
 public class ShineMonitorOpenApi {
     /**
@@ -18,6 +13,7 @@ public class ShineMonitorOpenApi {
         ShineMonitorOpenApi.reg();
         ShineMonitorOpenApi.auth();
         ShineMonitorOpenApi.authPassed();
+        ShineMonitorOpenApi.inquirePlantInfo();
     }
 
     /**
@@ -26,17 +22,15 @@ public class ShineMonitorOpenApi {
     private static void auth() {
         String usr = "RanaLavendrasinhji"; /* account, password, manufacturer identification. */
         String pwd = "12345678";
-//        String companyKey = "KSY0222HK1828";
-//        String companyKey = "0123456789ABCDEF";
-        String companyKey = "SOFAR-5KTLM-G3";
+        String companyKey = "MzmgRRw3VMZSLnQQ";
         String salt = System.currentTimeMillis() + ""; /* salt. */
         String sha1Pwd =
-                ShineMonitorOpenApi.sha1ToLowerCase(pwd.getBytes()); /* SHA-1(pwd). */
+                CryptoUtil.sha1ToLowerCase(pwd.getBytes()); /* SHA-1(pwd). */
         String action = "&action=auth&usr=" + usr /* Attention: Chinese need URLEncoder.encode. */
                 + "&company-key=" + companyKey;
-        String sign = ShineMonitorOpenApi.sha1ToLowerCase((salt + sha1Pwd
+        String sign = CryptoUtil.sha1ToLowerCase((salt + sha1Pwd
                 + action).getBytes()); /* SHA-1(slat + SHA-1(pwd) + action). */
-        String request = ShineMonitorOpenApi.OPEN_API_URI + "?sign=" +
+        String request = OPEN_API_URI + "?sign=" +
                 sign + "&salt=" + salt + action;
         System.out.println(" Auth: ==> "+request);
     }
@@ -45,29 +39,22 @@ public class ShineMonitorOpenApi {
      * register an account interface.
      */
     private static final void reg() {
-        String usr = "plant-user-01";
-        String pwd = "plant-user-01";
-        String mobile = "15889700000";
-        String email = "eybond@eybon.com";
+        String usr = "RanaLavendrasinhji"; /* account, password, manufacturer identification. */
+        String pwd = "12345678";
         String pn = "0123456789ABCD";
-        String sn = pn;
-        String companyKey = "0123456789ABCDEF";
+        String companyKey = "MzmgRRw3VMZSLnQQ";
         String salt = System.currentTimeMillis() + ""; /* salt. */
         String pwdSha1
-                = ShineMonitorOpenApi.sha1ToLowerCase(pwd.getBytes()); /* SHA-1(PWD).
-         */
-        String pnSha1 =
-                ShineMonitorOpenApi.sha1ToLowerCase(pn.getBytes()); /* SHA-1(PN). */
-        byte[] rc4 = ShineMonitorOpenApi.rc4enc(pnSha1.getBytes(),
+                = CryptoUtil.sha1ToLowerCase(pwd.getBytes()); /* SHA-1(PWD).*/
+
+        byte[] rc4 = CryptoUtil.rc4enc(companyKey.getBytes(),
                 pwdSha1.getBytes(), 0, pwdSha1.getBytes().length); /* RC4(SHA-1(PN),SHA-1(PWD)). */
-        String action = "&action=reg&usr=" + usr /* Attention: Chinese needURLEncoder.encode. */
-                + "&pwd=" + ShineMonitorOpenApi.byte2HexStr(rc4,
-                0, rc4.length).toLowerCase();
-        action += "&mobile=" + mobile + "&email=" + email + "&sn=" + sn
-                + "&company-key=" + companyKey;
-        String sign = ShineMonitorOpenApi.sha1ToLowerCase((salt + pwdSha1
+        String action = "&action=reg&usr=" + usr
+                + "&pwd=" + CryptoUtil.sha1ToLowerCase(rc4);
+        action += "&company-key=" + companyKey;
+        String sign = CryptoUtil.sha1ToLowerCase((salt + pwdSha1
                 + action).getBytes());
-        String request = ShineMonitorOpenApi.OPEN_API_URI + "?sign=" +
+        String request = OPEN_API_URI + "?sign=" +
                 sign + "&salt=" + salt + action;
         System.out.println(request);
     }
@@ -75,60 +62,36 @@ public class ShineMonitorOpenApi {
     /**
      * Business API Interface After certification is passed.
      */
-    private static final void authPassed() {
-        String secret = "ffa1655ee3726840822063a02ac5017795809b18"; /*certification is passed secret 与 token. */
+    private static void authPassed() {
+        String secret = "234c8e69d6603807fcacf83022d1c98453fcf136"; /*certification is passed secret and token. */
         String token =
-                "88d22d819e31897eea2d9d5b9f7792cf4065ac5372aad3672f5e4e147cd25b5f";
+                "8afcfb5d45ac207c73189f8bd005546f8afcb6f5e072ef4532ccc1ba2f504292";
         String salt = System.currentTimeMillis() + ""; /* salt. */
-        String action = "&action=queryCollectorInfo&pn=G0916522248153";
-        String sign = ShineMonitorOpenApi.sha1ToLowerCase((salt + secret
+        String action = "&action=queryAccountInfo";
+        String sign = CryptoUtil.sha1ToLowerCase((salt + secret
                 + token + action).getBytes()); /* SHA-1(slat + secret + token + action).
          */
-        String request = ShineMonitorOpenApi.OPEN_API_URI + "?sign=" +
+        String request = OPEN_API_URI + "?sign=" +
                 sign + "&salt=" + salt + "&token=" + token + action;
-        System.out.println(request);
+        System.out.println("fetch ==> "+request);
     }
 
-    /**
-     * Change byte flow to hexadecimal string (compact format, no spaces).
-     */
-    private static final String byte2HexStr(byte by[], int ofst, int len) {
-        if (len < 1)
-            return "";
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        PrintStream ps = new PrintStream(bos);
-        for (int i = ofst; i < ofst + len; i++)
-            ps.printf("%02X", by[i]);
-        return bos.toString();
-    }
+    private static void inquirePlantInfo() {
+        String secret = "234c8e69d6603807fcacf83022d1c98453fcf136";
+        String token= "8afcfb5d45ac207c73189f8bd005546f8afcb6f5e072ef4532ccc1ba2f504292";
+        String pn = "Q0029242327775";
+        String sn = "KSY0222HK1828";
+        int devcode = 632;
+        int devaddr = 1;
+        String date = "2025-09-08";
+        String salt = System.currentTimeMillis() + "";
+        String action = "&action=queryDeviceDataOneDay&i18n=zh_EN&pn="+pn+"&devcode="
+                +devcode+"&devaddr="+devaddr+"&sn="+sn+"&date="+date;
 
-    /**
-     * SHA-1 Abstract algorithm.
-     */
-    private static final String sha1ToLowerCase(byte[] by) {
-        try {
-            byte dat[] = MessageDigest.getInstance("SHA-1").digest(by);
-            return ShineMonitorOpenApi.byte2HexStr(dat, 0,
-                    dat.length).toLowerCase();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * RC4 encryption.
-     */
-    public static final byte[] rc4enc(byte key[], byte[] org, int ofst,
-                                      int len) {
-        try {
-            Key k = new SecretKeySpec(key, "RC4");
-            Cipher cip = Cipher.getInstance("RC4");
-            cip.init(Cipher.ENCRYPT_MODE, k);
-            return cip.doFinal(org, ofst, len);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        String sign = CryptoUtil.sha1ToLowerCase((salt + secret
+                + token + action).getBytes());
+        String request = OPEN_API_URI + "?sign=" +
+                sign + "&salt=" + salt + "&token=" + token + action;
+        System.out.println("inquire PlantInfo ==> "+request);
     }
 }
