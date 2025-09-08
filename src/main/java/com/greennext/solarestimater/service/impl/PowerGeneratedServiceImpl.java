@@ -121,15 +121,15 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             );
 
             // If authentication was successful, update customer details in database
-            if (response != null && response.getErr() == 0 && response.getDat() != null) {
+            if (response != null && response.getErrorCode() == 0 && response.getData() != null) {
                 Customer customer = customerRepository.findByUserId(username)
                         .orElse(new Customer()); // Create new customer if not exists
 
                 // Update customer details
                 customer.setUserId(username);
-                customer.setSecret(response.getDat().getSecret());
-                customer.setToken(response.getDat().getToken());
-                customer.setTokenDuration(String.valueOf(response.getDat().getExpire()));
+                customer.setSecret(response.getData().getSecret());
+                customer.setToken(response.getData().getToken());
+                customer.setTokenDuration(String.valueOf(response.getData().getExpire()));
 
                 // Save to database
                 customerRepository.save(customer);
@@ -138,8 +138,8 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             return response;
         } catch (Exception e) {
             AuthenticationResponse errorResponse = new AuthenticationResponse();
-            errorResponse.setErr(1);
-            errorResponse.setDesc("Authentication failed: " + e.getMessage());
+            errorResponse.setErrorCode(1);
+            errorResponse.setDescription("Authentication failed: " + e.getMessage());
             return errorResponse;
         }
     }
