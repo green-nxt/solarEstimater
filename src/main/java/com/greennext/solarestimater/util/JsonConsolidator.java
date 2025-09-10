@@ -4,6 +4,8 @@ import com.greennext.solarestimater.model.MetricTitle;
 import com.greennext.solarestimater.model.MetricValue;
 import com.greennext.solarestimater.model.response.DailyGenerationResponseBody;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class JsonConsolidator {
@@ -48,5 +50,35 @@ public class JsonConsolidator {
             }
         }
         return sumMap;
+    }
+
+    // Assumes timestamp format is "yyyy-MM-dd HH:mm:ss"
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    // Find the row ("field" list) with the most recent timestamp
+    public static MetricValue getLastRecordByTime(DailyGenerationResponseBody root) {
+        List<MetricTitle> metaList = root.getGenerationResponseData().getMetricTitles();
+        List<MetricValue> rows = root.getGenerationResponseData().getMetricValues();
+        int timestampIndex = -1;
+        // Find the index for "Timestamp"
+        for (int i = 0; i < metaList.size(); i++) {
+            if ("Timestamp".equalsIgnoreCase(metaList.get(i).getTitle())) {
+                timestampIndex = i;
+                break;
+            }
+        }
+        if (timestampIndex == -1) throw new IllegalArgumentException("No Timestamp field found");
+
+        MetricValue latestRow = null;
+        LocalDateTime latestTime = null;
+        for (MetricValue row : rows) {
+            String tsValue = row.getMetricField().get(timestampIndex);
+            LocalDateTime ts = LocalDateTime.parse(tsValue, formatter);
+            if (latestTime == null || ts.isAfter(latestTime)) {
+                latestTime = ts;
+                latestRow = row;
+            }
+        }
+        return latestRow;
     }
 }

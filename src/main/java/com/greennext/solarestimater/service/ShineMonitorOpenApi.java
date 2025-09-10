@@ -1,6 +1,7 @@
 package com.greennext.solarestimater.service;
 
 import com.greennext.solarestimater.util.CryptoUtil;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 public class ShineMonitorOpenApi {
     /**
@@ -14,6 +15,8 @@ public class ShineMonitorOpenApi {
         ShineMonitorOpenApi.auth();
         ShineMonitorOpenApi.authPassed();
         ShineMonitorOpenApi.inquirePlantInfo();
+        inquirePlantGenerationByDay();
+        passwordEncoder();
     }
 
     /**
@@ -93,5 +96,26 @@ public class ShineMonitorOpenApi {
         String request = OPEN_API_URI + "?sign=" +
                 sign + "&salt=" + salt + "&token=" + token + action;
         System.out.println("inquire PlantInfo ==> "+request);
+    }
+
+    private static void inquirePlantGenerationByDay() {
+        String secret = "234c8e69d6603807fcacf83022d1c98453fcf136";
+        String token= "8afcfb5d45ac207c73189f8bd005546f8afcb6f5e072ef4532ccc1ba2f504292";
+        String plantId = "1228998";
+        String date = "2025";
+        String salt = System.currentTimeMillis() + "";
+        String action = "&action=queryPlantEnergyDay&plantid="+plantId;
+
+        String sign = CryptoUtil.sha1ToLowerCase((salt + secret
+                + token + action).getBytes());
+        String request = OPEN_API_URI + "?sign=" +
+                sign + "&salt=" + salt + "&token=" + token + action;
+        System.out.println("generation PlantInfo ==> "+request);
+    }
+
+    private static void passwordEncoder() {
+        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        String rawPassword = "green_nxt@123";
+        System.out.println("Encoded password: " + passwordEncoder.encode(rawPassword));
     }
 }

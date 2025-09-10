@@ -1,33 +1,49 @@
 package com.greennext.solarestimater.service.impl;
 
-import com.greennext.solarestimater.model.Customer;
-import com.greennext.solarestimater.model.Inverter;
+import com.greennext.solarestimater.Exception.SolarEstimatorException;
+import com.greennext.solarestimater.model.*;
+import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
+import com.greennext.solarestimater.model.dto.SolarPlantDTO;
+import com.greennext.solarestimater.model.mapper.ResponseBodyMapper;
+import com.greennext.solarestimater.model.response.AllPlantsInfoResponseBody;
 import com.greennext.solarestimater.model.response.AuthenticationResponse;
 import com.greennext.solarestimater.model.response.DailyGenerationResponseBody;
-import com.greennext.solarestimater.model.response.DailyMetricResponseBody;
+import com.greennext.solarestimater.model.response.PlantEnergyPerDayResponseBody;
 import com.greennext.solarestimater.repository.CustomerRepository;
+import com.greennext.solarestimater.repository.DailyEnergyGenerationRepository;
 import com.greennext.solarestimater.repository.InverterRepository;
+import com.greennext.solarestimater.repository.SolarPlantRepository;
 import com.greennext.solarestimater.service.PowerGeneratedService;
 import com.greennext.solarestimater.util.CryptoUtil;
 import com.greennext.solarestimater.util.PropertiesUtil;
 import com.greennext.solarestimater.webclient.GreenNxtWebClient;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static com.greennext.solarestimater.util.AppConstants.*;
 import static com.greennext.solarestimater.util.CryptoUtil.sha1ToLowerCase;
 
 @Service
+@Slf4j
 public class PowerGeneratedServiceImpl implements PowerGeneratedService {
 
-    @Autowired private PropertiesUtil property;
-    @Autowired private GreenNxtWebClient greenNxtWebClient;
-    @Autowired private InverterRepository inverterRepository;
-    @Autowired private CustomerRepository customerRepository;
+    @Autowired PropertiesUtil property;
+    @Autowired GreenNxtWebClient greenNxtWebClient;
+    @Autowired InverterRepository inverterRepository;
+    @Autowired CustomerRepository customerRepository;
+    @Autowired ResponseBodyMapper ResponseBodyMapper;
+    @Autowired SolarPlantRepository solarPlantRepository;
+    @Autowired DailyEnergyGenerationRepository dailyEnergyGenerationRepository;
 
     private Customer validateAndGetCustomer(String userId) {
         return customerRepository.findByUserId(userId)
@@ -35,11 +51,12 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
     }
 
     private Inverter validateAndGetInverter(Customer customer) {
-        Inverter inverter = customer.getInverter();
-        if (inverter == null) {
-            throw new RuntimeException("No inverter found for customer");
-        }
-        return inverter;
+//        Inverter inverter = customer.getPlants().getFirst().getInverter();
+//        if (inverter == null) {
+//            throw new RuntimeException("No inverter found for customer");
+//        }
+//        return inverter;
+        return null;
     }
 
     private String buildDeviceDataAction(Inverter inverter, LocalDate date) {
@@ -60,8 +77,7 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
         Map<String, String> queryParams = new HashMap<>();
         queryParams.put(SIGN, sign);
         queryParams.put(SALT, salt);
-        queryParams.put(TOKEN, token);
-        queryParams.put(ACTION, action);
+        queryParams.put(TOKEN, token + action);
         return queryParams;
     }
 
@@ -108,10 +124,9 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             String sign = CryptoUtil.sha1ToLowerCase((salt + sha1Password + action).getBytes());
 
             // Only include sign, salt, and action in query params
-            Map<String, String> queryParams = new HashMap<>();
+            Map<String, String> queryParams = new LinkedHashMap<>();
             queryParams.put(SIGN, sign);
-            queryParams.put(SALT, salt);
-            queryParams.put(ACTION, action);
+            queryParams.put(SALT, salt + action);
 
             AuthenticationResponse responseBody = new AuthenticationResponse();
             AuthenticationResponse response = (AuthenticationResponse) greenNxtWebClient.get(
@@ -123,7 +138,7 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             // If authentication was successful, update customer details in database
             if (response != null && response.getErrorCode() == 0 && response.getData() != null) {
                 Customer customer = customerRepository.findByUserId(username)
-                        .orElse(new Customer()); // Create new customer if not exists
+                        .orElse(new Customer());
 
                 // Update customer details
                 customer.setUserId(username);
@@ -133,6 +148,8 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
 
                 // Save to database
                 customerRepository.save(customer);
+            } else {
+                log.info("Error with message {}", response);
             }
 
             return response;
@@ -141,6 +158,107 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             errorResponse.setErrorCode(1);
             errorResponse.setDescription("Authentication failed: " + e.getMessage());
             return errorResponse;
+        }
+    }
+
+    @Transactional
+    public ResponseEntity<?> queryAllPlants(String userId) {
+        try {
+            Customer customer = validateAndGetCustomer(userId);
+            SolarPlant solarPlant = solarPlantRepository.findByCustomer(customer).orElse(null);
+
+            String salt = System.currentTimeMillis() + "";
+            String action = PARAM_PREFIX + ACTION + EQUALS + ACTION_QUERY_PLANTS;
+
+            // Generate sign and create query parameters
+            String sign = generateSign(salt, customer, action);
+            Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
+            AllPlantsInfoResponseBody responseBody = new AllPlantsInfoResponseBody();
+            responseBody = (AllPlantsInfoResponseBody) greenNxtWebClient.get(
+                    property.getInverterUrl(),
+                    responseBody,
+                    queryParams
+            );
+            if (responseBody != null && responseBody.getErrorCode() == 0 && responseBody.getData() != null) {
+                List<SolarPlantDTO> solarPlants = ResponseBodyMapper.mapToPlantDTOList(responseBody);
+                log.info("Plant info response: {}",solarPlants.getFirst());
+                if (solarPlant==null) {
+                    List<SolarPlant> plants = responseBody.getData().getPlant();
+                    plants = plants.stream().peek(p -> p.setCustomer(customer)).toList();
+                    solarPlantRepository.saveAll(plants);
+                }
+                return new ResponseEntity<>(solarPlants, HttpStatus.OK);
+            } else {
+                ErrorDetails error = new ErrorDetails(false, responseBody.getErrorCode(),
+                        responseBody.getDescription());
+                throw new SolarEstimatorException(error);
+            }
+
+        } catch (SolarEstimatorException e) {
+            log.error("Error fetching plant data: {}", e.getErrorDetails().getMessage());
+            throw new SolarEstimatorException(e.getErrorDetails());
+        } catch (Exception e) {
+            log.error("Unexpected error while fetching all plants data: {}", e.getMessage());
+            ErrorDetails error = new ErrorDetails(false, 1, "Failed to fetch plant data: " + e.getMessage());
+            throw new SolarEstimatorException(error);
+        }
+    }
+    
+    public ResponseEntity<?> getEnergyByDay(String userId, LocalDate date) {
+        try {
+            Customer customer = validateAndGetCustomer(userId);
+            String salt = System.currentTimeMillis() + "";
+            SolarPlant plant = customer.getPlants().getFirst();
+            String plantId = String.valueOf(plant.getPid());
+
+            date = date != null ? date : LocalDate.now();
+
+            String action = PARAM_PREFIX + ACTION + EQUALS + ACTION_QUERY_PLANT_ENERGY_DAY +
+                    PARAM_PREFIX + PLANT_ID + EQUALS + plantId;
+            String sign = generateSign(salt, customer, action);
+            Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
+
+            PlantEnergyPerDayResponseBody responseBody = new PlantEnergyPerDayResponseBody();
+            responseBody = (PlantEnergyPerDayResponseBody) greenNxtWebClient.get(
+                    property.getInverterUrl(),
+                    responseBody,
+                    queryParams
+            );
+            if (responseBody != null && responseBody.getErrorCode() == 0
+                    && responseBody.getDailyEnergyData() != null) {
+                DailyEnergyDTO dailyEnergyDto = ResponseBodyMapper.mapDailyEnergyDto(responseBody);
+                log.info("Energy generated today: {}",dailyEnergyDto);
+                persistDailyGenerationData(date, plant, dailyEnergyDto);
+                return new ResponseEntity<>(dailyEnergyDto, HttpStatus.OK);
+            } else {
+                ErrorDetails error = new ErrorDetails(false, responseBody.getErrorCode(),
+                        responseBody.getDescription());
+                throw new SolarEstimatorException(error);
+            }
+        } catch (SolarEstimatorException e) {
+            log.error("Error fetching energy data: {}", e.getMessage());
+            throw new SolarEstimatorException(e.getErrorDetails());
+        } catch (Exception e) {
+            log.error("Unexpected error fetching energy data: {}", e.getMessage());
+            ErrorDetails error = new ErrorDetails(false, 1, "Failed to fetch energy data: " + e.getMessage());
+            throw new SolarEstimatorException(error);
+        }
+    }
+
+    @Transactional
+    private void persistDailyGenerationData(LocalDate date, SolarPlant plant, DailyEnergyDTO dailyEnergyDto) {
+        DailyEnergyGeneration dailyEnergyGeneration = dailyEnergyGenerationRepository.findByPlantAndDate(plant, date);
+        if(dailyEnergyGeneration != null) {
+            log.info("Updating existing daily energy record for date: {}", date);
+            dailyEnergyGeneration.setEnergyGenerated(Double.parseDouble(dailyEnergyDto.energy));
+            dailyEnergyGenerationRepository.save(dailyEnergyGeneration);
+        } else {
+            log.info("Creating new daily energy record for date: {}", date);
+            dailyEnergyGeneration = new DailyEnergyGeneration();
+            dailyEnergyGeneration.setDate(date);
+            dailyEnergyGeneration.setPlant(plant);
+            dailyEnergyGeneration.setEnergyGenerated(Double.parseDouble(dailyEnergyDto.energy));
+            dailyEnergyGenerationRepository.save(dailyEnergyGeneration);
         }
     }
 }

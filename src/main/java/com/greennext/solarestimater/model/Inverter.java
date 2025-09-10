@@ -3,7 +3,6 @@ package com.greennext.solarestimater.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import java.util.ArrayList;
@@ -31,11 +30,10 @@ public class Inverter {
     @Column(nullable = false)
     private String deviceAddress;
 
-    @OneToOne(mappedBy = "inverter", fetch = FetchType.LAZY)
-    @JsonBackReference("customer-inverter")
-    private Customer customer;
-
     @OneToMany(mappedBy = "inverter", fetch = FetchType.LAZY)
     @JsonManagedReference("inverter-powerrecords")
     private List<DailyPowerRecord> powerRecords = new ArrayList<>();
+
+//    @OneToOne(mappedBy = "inverter", fetch = FetchType.LAZY)
+//    private SolarPlant solarPlant;
 }

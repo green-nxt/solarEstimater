@@ -1,6 +1,7 @@
 package com.greennext.solarestimater.webclient;
 
 import com.greennext.solarestimater.model.response.WebClientResponseBody;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -10,6 +11,7 @@ import java.net.URI;
 import java.util.Map;
 
 @Component
+@Slf4j
 public class GreenNxtWebClient {
     private final WebClient webClient;
 
@@ -29,29 +31,11 @@ public class GreenNxtWebClient {
     private URI buildUri(String url, Map<String, String> queryParams) {
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath(url);
         if (queryParams != null) {
-            String[] orderedKeys = {"sign","salt","token", "action", "i18n", "pn",
-                    "devcode", "devaddr", "sn", "date"};
-            // Add prioritized keys in order
-            for (String key : orderedKeys) {
-                if (queryParams.containsKey(key)) {
-                    builder.queryParam(key, queryParams.get(key));
-                }
-            }
-            // Add remaining keys
-            queryParams.forEach((key, value) -> {
-                boolean isPrioritized = false;
-                for (String orderedKey : orderedKeys) {
-                    if (orderedKey.equals(key)) {
-                        isPrioritized = true;
-                        break;
-                    }
-                }
-                if (!isPrioritized) {
-                    builder.queryParam(key, value);
-                }
-            });
+            queryParams.forEach(builder::queryParam);
         }
-        return builder.build().toUri();
+        URI uri = builder.build().toUri();
+        log.info("Built URI: {}", uri);
+        return uri;
     }
 
     private WebClientResponseBody getResponse(String url, WebClientResponseBody responseBody, Map<String, String> queryParams) {
