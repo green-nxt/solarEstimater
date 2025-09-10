@@ -1,0 +1,15 @@
+package com.greennext.solarestimater.service;
+
+import com.greennext.solarestimater.model.response.AuthenticationResponse;
+import com.greennext.solarestimater.model.response.DailyGenerationResponseBody;
+import org.springframework.http.ResponseEntity;
+
+import java.time.LocalDate;
+
+public interface PowerGeneratedService {
+
+    DailyGenerationResponseBody getPowerGeneratedByDate(String userId, LocalDate date);
+    AuthenticationResponse authenticateUser(String username, String password);
+    ResponseEntity<?> queryAllPlants(String userId);
+    ResponseEntity<?> getEnergyByDay(String userId, LocalDate date);
+}
