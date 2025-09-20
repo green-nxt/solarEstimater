@@ -26,6 +26,9 @@ public class Customer {
     @Column(length = 64)
     private String secret;
 
+    @Column(nullable = false)
+    private float discount;
+
     @OneToOne(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private CustomerCredentials credentials;
 

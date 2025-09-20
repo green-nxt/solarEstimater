@@ -12,4 +12,8 @@ public interface PowerGeneratedService {
     AuthenticationResponse authenticateUser(String username, String password);
     ResponseEntity<?> queryAllPlants(String userId);
     ResponseEntity<?> getEnergyByDay(String userId, LocalDate date);
+
+    ResponseEntity<?> getEnergyDaily(String userId);
+
+    ResponseEntity<?> getGenerationStats(String userId);
 }

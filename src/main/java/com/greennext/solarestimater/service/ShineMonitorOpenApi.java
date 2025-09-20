@@ -23,12 +23,13 @@ public class ShineMonitorOpenApi {
      * Authentication interface.
      */
     private static void auth() {
-        String usr = "RanaLavendrasinhji"; /* account, password, manufacturer identification. */
-        String pwd = "12345678";
+        String usr = "RBS Eng"; /* account, password, manufacturer identification. */
+        String pwd = "RBS@123";
         String companyKey = "MzmgRRw3VMZSLnQQ";
         String salt = System.currentTimeMillis() + ""; /* salt. */
         String sha1Pwd =
                 CryptoUtil.sha1ToLowerCase(pwd.getBytes()); /* SHA-1(pwd). */
+        usr = usr.replaceAll("\\s", "%20");
         String action = "&action=auth&usr=" + usr /* Attention: Chinese need URLEncoder.encode. */
                 + "&company-key=" + companyKey;
         String sign = CryptoUtil.sha1ToLowerCase((salt + sha1Pwd

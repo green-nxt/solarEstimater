@@ -5,14 +5,8 @@ import com.greennext.solarestimater.model.*;
 import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
 import com.greennext.solarestimater.model.dto.SolarPlantDTO;
 import com.greennext.solarestimater.model.mapper.ResponseBodyMapper;
-import com.greennext.solarestimater.model.response.AllPlantsInfoResponseBody;
-import com.greennext.solarestimater.model.response.AuthenticationResponse;
-import com.greennext.solarestimater.model.response.DailyGenerationResponseBody;
-import com.greennext.solarestimater.model.response.PlantEnergyPerDayResponseBody;
-import com.greennext.solarestimater.repository.CustomerRepository;
-import com.greennext.solarestimater.repository.DailyEnergyGenerationRepository;
-import com.greennext.solarestimater.repository.InverterRepository;
-import com.greennext.solarestimater.repository.SolarPlantRepository;
+import com.greennext.solarestimater.model.response.*;
+import com.greennext.solarestimater.repository.*;
 import com.greennext.solarestimater.service.PowerGeneratedService;
 import com.greennext.solarestimater.util.CryptoUtil;
 import com.greennext.solarestimater.util.PropertiesUtil;
@@ -44,9 +38,13 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
     @Autowired ResponseBodyMapper ResponseBodyMapper;
     @Autowired SolarPlantRepository solarPlantRepository;
     @Autowired DailyEnergyGenerationRepository dailyEnergyGenerationRepository;
+    @Autowired
+    CustomerCredentialsRepository customerCredentialsRepository;
 
     private Customer validateAndGetCustomer(String userId) {
-        return customerRepository.findByUserId(userId)
+        Customer customer = customerCredentialsRepository.findByUsername(userId)
+                .orElseThrow(() -> new RuntimeException("Customer credentials not found")).getCustomer();
+        return customerRepository.findByUserId(customer.getUserId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
     }
 
@@ -115,6 +113,7 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
     public AuthenticationResponse authenticateUser(String username, String password) {
         try {
             String salt = System.currentTimeMillis() + "";
+            username = username.replaceAll("\\s", "%20");
             String sha1Password = CryptoUtil.sha1ToLowerCase(password.getBytes());
 
             String action = PARAM_PREFIX + ACTION + EQUALS + ACTION_AUTH +
@@ -122,7 +121,8 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
                     PARAM_PREFIX + COMPANY_KEY + EQUALS + property.getCompanyKey();
 
             String sign = CryptoUtil.sha1ToLowerCase((salt + sha1Password + action).getBytes());
-
+            log.info("Action for authentication: {}", action);
+            action = action.replace("%20", " ");
             // Only include sign, salt, and action in query params
             Map<String, String> queryParams = new LinkedHashMap<>();
             queryParams.put(SIGN, sign);
@@ -137,6 +137,7 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
 
             // If authentication was successful, update customer details in database
             if (response != null && response.getErrorCode() == 0 && response.getData() != null) {
+                username = username.replace("%20", " ");
                 Customer customer = customerRepository.findByUserId(username)
                         .orElse(new Customer());
 
@@ -150,14 +151,17 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
                 customerRepository.save(customer);
             } else {
                 log.info("Error with message {}", response);
+                throw new SolarEstimatorException(
+                        new ErrorDetails(false, response.getErrorCode(), response.getDescription()));
             }
-
             return response;
+        } catch (SolarEstimatorException e) {
+            log.error("Authentication error: {}", e.getErrorDetails().getMessage());
+            throw new SolarEstimatorException(e.getErrorDetails());
         } catch (Exception e) {
-            AuthenticationResponse errorResponse = new AuthenticationResponse();
-            errorResponse.setErrorCode(1);
-            errorResponse.setDescription("Authentication failed: " + e.getMessage());
-            return errorResponse;
+            log.error("Unexpected error during authentication: {}", e.getMessage());
+            ErrorDetails error = new ErrorDetails(false, 1, "Authentication failed: " + e.getMessage());
+            throw new SolarEstimatorException(error);
         }
     }
 
@@ -214,7 +218,7 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             date = date != null ? date : LocalDate.now();
 
             String action = PARAM_PREFIX + ACTION + EQUALS + ACTION_QUERY_PLANT_ENERGY_DAY +
-                    PARAM_PREFIX + PLANT_ID + EQUALS + plantId;
+                    PARAM_PREFIX + PLANT_ID + EQUALS + plantId + PARAM_PREFIX + DATE + EQUALS + date;
             String sign = generateSign(salt, customer, action);
             Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
 
@@ -243,6 +247,45 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             ErrorDetails error = new ErrorDetails(false, 1, "Failed to fetch energy data: " + e.getMessage());
             throw new SolarEstimatorException(error);
         }
+    }
+
+    @Override
+    public ResponseEntity<?> getEnergyDaily(String userId) {
+        return getEnergyByDay(userId, null);
+    }
+
+    @Override
+    public ResponseEntity<?> getGenerationStats(String userId) {
+        Customer customer = validateAndGetCustomer(userId);
+        SolarPlant solarPlant = customer.getPlants().getFirst();
+
+        float plantCapacity = Float.parseFloat(solarPlant.getNominalPower());
+        double generationToday = solarPlant.getDailyGenerations().stream()
+                .filter(d -> d.getDate().equals(LocalDate.now()))
+                .map(DailyEnergyGeneration::getEnergyGenerated)
+                .findFirst().orElse(0.0);
+        float discount = customer.getDiscount();
+        PlantGenerationStats response = getPlantGenerationStats(generationToday, discount, plantCapacity);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    private static PlantGenerationStats getPlantGenerationStats(double generationToday, float discount, float plantCapacity) {
+        float savingsToday = (float) ((generationToday * 11) * discount);
+        float generationMonthly = 0.0f;
+        float totalSavings = generationMonthly * 11 * discount;
+        float environmentalImpact = plantCapacity * 0.8f;
+        float treeEquivalent = plantCapacity * (13.27f / 365);
+
+        PlantGenerationStats response = new PlantGenerationStats();
+        response.setCapacity(plantCapacity);
+        response.setGenerationMonthly(generationMonthly);
+        response.setDiscount(discount);
+        response.setSavingsToday(savingsToday);
+        response.setTreeImpact(treeEquivalent);
+        response.setSavingsToday(totalSavings);
+        response.setEnvironmentalImpact(environmentalImpact);
+        return response;
     }
 
     @Transactional

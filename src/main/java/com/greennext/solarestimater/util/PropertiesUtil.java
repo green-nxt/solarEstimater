@@ -13,4 +13,5 @@ public class PropertiesUtil {
     private String inverterUrl;
     @Value("${company.key}")
     private String companyKey;
+
 }
