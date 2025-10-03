@@ -6,7 +6,7 @@ import com.greennext.solarestimater.model.dto.AddressDTO;
 import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
 import com.greennext.solarestimater.model.dto.SolarPlantDTO;
 import com.greennext.solarestimater.model.response.AllPlantsInfoResponseBody;
-import com.greennext.solarestimater.model.response.PlantEnergyPerDayResponseBody;
+import com.greennext.solarestimater.model.response.PlantEnergyGenerationResponseBody;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -58,13 +58,13 @@ public class ResponseBodyMapper {
         return dto;
     }
 
-    public DailyEnergyDTO mapDailyEnergyDto(PlantEnergyPerDayResponseBody response) {
-        if (response == null || response.getDailyEnergyData() == null) {
+    public DailyEnergyDTO mapDailyEnergyDto(PlantEnergyGenerationResponseBody response) {
+        if (response == null || response.getEnergyData() == null) {
             return null;
         }
         DailyEnergyDTO dto = new DailyEnergyDTO();
         dto.setSuccess(true);
-        dto.setEnergy(response.getDailyEnergyData().getEnergy());
+        dto.setEnergy(response.getEnergyData().getEnergy());
         return dto;
     }
 }

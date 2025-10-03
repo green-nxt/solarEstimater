@@ -32,6 +32,20 @@ public class GreenNxtController {
         return ResponseEntity.ok(powerGeneratedService.getEnergyDaily(userName));
     }
 
+    @GetMapping("/generation/monthly")
+    public ResponseEntity<?> getMonthlyGeneration(Authentication authentication) {
+        String userName = authentication.getName();
+        log.info("Received request to query monthly power generation for user: {}", userName);
+        return ResponseEntity.ok(powerGeneratedService.getEnergyMonthly(userName));
+    }
+
+    @GetMapping("/generation/month/{date}")
+    public ResponseEntity<?> getMonthlyGeneration(Authentication authentication, @PathVariable LocalDate date) {
+        String userName = authentication.getName();
+        log.info("Received request to query power generation for month {} for user: {}", date, userName);
+        return ResponseEntity.ok(powerGeneratedService.getEnergyByMonth(userName, date));
+    }
+
     @GetMapping("/generation/date/{date}")
     public ResponseEntity<?> getGenerationByDate(Authentication authentication, @PathVariable LocalDate date) {
         String userName = authentication.getName();

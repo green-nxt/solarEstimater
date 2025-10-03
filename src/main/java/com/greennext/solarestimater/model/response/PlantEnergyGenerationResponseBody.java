@@ -7,12 +7,12 @@ import lombok.Setter;
 
 @Getter @Setter
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class PlantEnergyPerDayResponseBody implements WebClientResponseBody{
+public class PlantEnergyGenerationResponseBody implements WebClientResponseBody {
 
     @JsonAlias("err")
     private int errorCode;
     @JsonAlias("desc")
     private String description;
     @JsonAlias("dat")
-    DailyEnergyData dailyEnergyData;
+    EnergyData energyData;
 }

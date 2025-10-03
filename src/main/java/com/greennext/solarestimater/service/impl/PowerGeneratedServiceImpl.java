@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -222,14 +223,14 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
             String sign = generateSign(salt, customer, action);
             Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
 
-            PlantEnergyPerDayResponseBody responseBody = new PlantEnergyPerDayResponseBody();
-            responseBody = (PlantEnergyPerDayResponseBody) greenNxtWebClient.get(
+            PlantEnergyGenerationResponseBody responseBody = new PlantEnergyGenerationResponseBody();
+            responseBody = (PlantEnergyGenerationResponseBody) greenNxtWebClient.get(
                     property.getInverterUrl(),
                     responseBody,
                     queryParams
             );
             if (responseBody != null && responseBody.getErrorCode() == 0
-                    && responseBody.getDailyEnergyData() != null) {
+                    && responseBody.getEnergyData() != null) {
                 DailyEnergyDTO dailyEnergyDto = ResponseBodyMapper.mapDailyEnergyDto(responseBody);
                 log.info("Energy generated today: {}",dailyEnergyDto);
                 persistDailyGenerationData(date, plant, dailyEnergyDto);
@@ -252,6 +253,54 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
     @Override
     public ResponseEntity<?> getEnergyDaily(String userId) {
         return getEnergyByDay(userId, null);
+    }
+
+    public ResponseEntity<?> getEnergyByMonth(String userId, LocalDate date) {
+        try {
+            Customer customer = validateAndGetCustomer(userId);
+            String salt = System.currentTimeMillis() + "";
+            SolarPlant plant = customer.getPlants().getFirst();
+            String plantId = String.valueOf(plant.getPid());
+            date = date != null ? date : LocalDate.now();
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+            String month = date.format(formatter);
+
+            String action = PARAM_PREFIX + ACTION + EQUALS + ACTION_QUERY_PLANT_ENERGY_MONTH +
+                    PARAM_PREFIX + PLANT_ID + EQUALS + plantId + PARAM_PREFIX + DATE + EQUALS + month;
+
+            String sign = generateSign(salt, customer, action);
+            Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
+
+            PlantEnergyGenerationResponseBody responseBody = new PlantEnergyGenerationResponseBody();
+            responseBody = (PlantEnergyGenerationResponseBody) greenNxtWebClient.get(
+                    property.getInverterUrl(),
+                    responseBody,
+                    queryParams
+            );
+            if (responseBody != null && responseBody.getErrorCode() == 0
+                    && responseBody.getEnergyData() != null) {
+                DailyEnergyDTO dailyEnergyDto = ResponseBodyMapper.mapDailyEnergyDto(responseBody);
+                log.info("Energy generated Monthly: {}", dailyEnergyDto);
+//                persistDailyGenerationData(date, plant, dailyEnergyDto);
+                return new ResponseEntity<>(dailyEnergyDto, HttpStatus.OK);
+            } else {
+                ErrorDetails error = new ErrorDetails(false, responseBody.getErrorCode(),
+                        responseBody.getDescription());
+                throw new SolarEstimatorException(error);
+            }
+        } catch (SolarEstimatorException e) {
+            log.error("Error fetching monthly energy data: {}", e.getMessage());
+            throw new SolarEstimatorException(e.getErrorDetails());
+        } catch (Exception e) {
+            log.error("Unexpected error fetching monthly energy data: {}", e.getMessage());
+            ErrorDetails error = new ErrorDetails(false, 1, "Failed to fetch energy data: " + e.getMessage());
+            throw new SolarEstimatorException(error);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getEnergyMonthly(String userId) {
+        return getEnergyByMonth(userId, null);
     }
 
     @Override

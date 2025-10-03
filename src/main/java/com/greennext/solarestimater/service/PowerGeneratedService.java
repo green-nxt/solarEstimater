@@ -12,8 +12,10 @@ public interface PowerGeneratedService {
     AuthenticationResponse authenticateUser(String username, String password);
     ResponseEntity<?> queryAllPlants(String userId);
     ResponseEntity<?> getEnergyByDay(String userId, LocalDate date);
-
     ResponseEntity<?> getEnergyDaily(String userId);
 
+    ResponseEntity<?> getEnergyMonthly(String userId);
+
+    ResponseEntity<?> getEnergyByMonth(String userId, LocalDate date);
     ResponseEntity<?> getGenerationStats(String userId);
 }

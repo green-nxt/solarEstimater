@@ -22,6 +22,7 @@ public class AppConstants {
     public static final String ACTION_QUERY_DEVICE_DATA = "queryDeviceDataOneDay";
     public static final String ACTION_QUERY_PLANTS = "queryPlants";
     public static final String ACTION_QUERY_PLANT_ENERGY_DAY = "queryPlantEnergyDay";
+    public static final String ACTION_QUERY_PLANT_ENERGY_MONTH = "queryPlantEnergyMonth";
 
     // Other Constants
     public static final String DEFAULT_LANGUAGE = "zh_EN";

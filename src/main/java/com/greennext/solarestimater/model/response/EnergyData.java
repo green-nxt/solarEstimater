@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Getter @Setter
-public class DailyEnergyData {
+public class EnergyData {
 
-    String energy; // "14.0000
+    String energy;
 }

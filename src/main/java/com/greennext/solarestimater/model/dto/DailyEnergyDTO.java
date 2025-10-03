@@ -8,5 +8,4 @@ public class DailyEnergyDTO {
 
     private boolean isSuccess;
     public String energy;
-
 }
