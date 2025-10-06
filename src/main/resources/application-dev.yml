@@ -1,0 +1,39 @@
+#Force reload of the application context on each request
+spring:
+    devtools:
+        restart:
+        enabled: true
+
+#Database configuration
+    datasource:
+        url: ${DB_URL}
+        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+#        HikariCP settings
+        hikari:
+            maximum-pool-size: 10
+            minimum-idle: 5
+            idle-timeout: 30000
+            pool-name: HikariCP
+            max-lifetime: 600000
+            connection-timeout: 30000
+    jpa:
+        hibernate:
+            ddl-auto: update
+        show-sql: true
+        properties:
+            hibernate:
+              dialect: org.hibernate.dialect.PostgreSQLDialect
+              format_sql: true
+
+# Actuator endpoints configuration
+management:
+    endpoints:
+        web:
+            exposure:
+                include: "health,info,metrics,beans,env,loggers"
+    endpoint:
+        health:
+            show-details: always

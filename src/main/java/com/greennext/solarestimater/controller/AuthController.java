@@ -6,6 +6,10 @@ import com.greennext.solarestimater.model.request.LoginRequestBody;
 import com.greennext.solarestimater.model.response.AuthenticationResponse;
 import com.greennext.solarestimater.security.JwtUtil;
 import com.greennext.solarestimater.service.PowerGeneratedService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -24,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth")
 @Slf4j
+@Tag(name = "Authentication", description = "Endpoints for user authentication")
 public class AuthController {
 
     @Autowired
@@ -34,6 +39,13 @@ public class AuthController {
     JwtUtil jwtUtils;
 
     @PostMapping("/login")
+    @Operation(summary = "User Login", description = "Authenticate user and return JWT token")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Successful authentication"),
+                    @ApiResponse(responseCode = "401", description = "Invalid credentials")
+            }
+    )
     public ResponseEntity<?> login(@RequestBody LoginRequestBody request) {
         try {
             UsernamePasswordAuthenticationToken authToken =
@@ -52,6 +64,13 @@ public class AuthController {
     }
 
     @PostMapping("/token/generate")
+    @Operation(summary = "Generate Token", description = "Generate authentication token for user")
+    @ApiResponses(
+            value = {
+                    @ApiResponse(responseCode = "200", description = "Token generated successfully"),
+                    @ApiResponse(responseCode = "400", description = "Bad request")
+            }
+    )
     public ResponseEntity<?> generateToken(@RequestBody CustomerLoginRequestBody request) {
         try {
             AuthenticationResponse response = powerGeneratedService
