@@ -1,0 +1,14 @@
+
+INSERT INTO public.customer(
+	user_id, discount, name)
+	VALUES ('RanaLavendrasinhji', 50.0, 'RanaLavendrasinhji');
+
+INSERT INTO public.customer_credentials(is_active,
+	 password, username, customer_id)
+	VALUES (true,'$2a$10$q5PSUPaNXWpCzf9ENshqMOWsh/KxErJ.xQdAavvJiK8S7c8fvO3Qe',
+	'green-nxt', 'RanaLavendrasinhji');
+
+===> Flow
+insert customer details.
+insert customer credentials with encrypted password, which user will use to login in the application.
+insert all plants info, if not present. Can be done in sync with the customer_credentials insert.

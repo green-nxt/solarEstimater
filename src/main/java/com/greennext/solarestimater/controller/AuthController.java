@@ -59,6 +59,7 @@ public class AuthController {
             return ResponseEntity.ok(jwtUtils.generateToken(userDetails.getUsername()));
 
         } catch (AuthenticationException e) {
+            log.error(e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
         }
     }
