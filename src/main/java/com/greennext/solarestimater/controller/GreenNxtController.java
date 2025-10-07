@@ -1,5 +1,9 @@
 package com.greennext.solarestimater.controller;
 
+import com.greennext.solarestimater.model.ErrorDetails;
+import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
+import com.greennext.solarestimater.model.response.AllPlantsInfoResponseBody;
+import com.greennext.solarestimater.model.response.PlantGenerationStats;
 import com.greennext.solarestimater.service.PowerGeneratedService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -27,9 +31,11 @@ public class GreenNxtController {
     @Operation(summary = "Get All Plants Details", description = "Retrieve details of all plants associated with the authenticated user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved plant details"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden access")
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved plant details",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json",
+                                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = AllPlantsInfoResponseBody.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class)))
             }
     )
     public ResponseEntity<?> getAllPlantsDetails(Authentication authentication) {
@@ -42,7 +48,9 @@ public class GreenNxtController {
     @Operation(summary = "Get Daily Generation", description = "Retrieve daily power generation data for the authenticated user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved daily generation data"),
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved daily generation data",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = DailyEnergyDTO.class))
+                    ),
                     @ApiResponse(responseCode = "401", description = "Unauthorized access"),
                     @ApiResponse(responseCode = "403", description = "Forbidden access")
             }
@@ -57,9 +65,12 @@ public class GreenNxtController {
     @Operation(summary = "Get Monthly Generation", description = "Retrieve monthly power generation data for the authenticated user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved monthly generation data"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden access")
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved monthly generation data",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = DailyEnergyDTO.class))
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized access",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class)))
             }
     )
     public ResponseEntity<?> getMonthlyGeneration(Authentication authentication) {
@@ -72,9 +83,11 @@ public class GreenNxtController {
     @Operation(summary = "Get Monthly Generation by Date", description = "Retrieve power generation data for a specific month for the authenticated user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved monthly generation data for the specified month"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden access")
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved monthly generation data for the specified month",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = DailyEnergyDTO.class))
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class)))
             }
     )
     public ResponseEntity<?> getMonthlyGeneration(Authentication authentication, @PathVariable LocalDate date) {
@@ -87,9 +100,10 @@ public class GreenNxtController {
     @Operation(summary = "Get Generation by Date", description = "Retrieve power generation data for a specific date for the authenticated user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved generation data for the specified date"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden access")
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved generation data for the specified date",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = DailyEnergyDTO.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class)))
             }
     )
     public ResponseEntity<?> getGenerationByDate(Authentication authentication, @PathVariable LocalDate date) {
@@ -102,9 +116,10 @@ public class GreenNxtController {
     @Operation(summary = "Get Generation Stats", description = "Retrieve power generation statistics for the authenticated user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved generation statistics"),
-                    @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-                    @ApiResponse(responseCode = "403", description = "Forbidden access")
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved generation statistics",
+                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = PlantGenerationStats.class))),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class))),
+                    @ApiResponse(responseCode = "403", description = "Forbidden access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class)))
             }
     )
     public ResponseEntity<?> getGenerationStats(Authentication authentication) {
