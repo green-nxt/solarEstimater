@@ -7,6 +7,7 @@ import com.greennext.solarestimater.model.response.AuthenticationResponse;
 import com.greennext.solarestimater.security.JwtUtil;
 import com.greennext.solarestimater.service.PowerGeneratedService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,18 +33,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     @Autowired
-    private AuthenticationManager authenticationManager;
-    @Autowired
     PowerGeneratedService powerGeneratedService;
     @Autowired
     JwtUtil jwtUtils;
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
     @PostMapping("/login")
     @Operation(summary = "User Login", description = "Authenticate user and return JWT token")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Successful authentication"),
-                    @ApiResponse(responseCode = "401", description = "Invalid credentials")
+                    @ApiResponse(responseCode = "200", description = "Successful authentication",
+                            content = @Content(schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = String.class))
+                    ),
+                    @ApiResponse(responseCode = "401", description = "Invalid credentials",
+                            content = @Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = String.class)))
             }
     )
     public ResponseEntity<?> login(@RequestBody LoginRequestBody request) {
@@ -68,8 +72,12 @@ public class AuthController {
     @Operation(summary = "Generate Token", description = "Generate authentication token for user")
     @ApiResponses(
             value = {
-                    @ApiResponse(responseCode = "200", description = "Token generated successfully"),
-                    @ApiResponse(responseCode = "400", description = "Bad request")
+                    @ApiResponse(responseCode = "200", description = "Token generated successfully",
+                            content = @Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = AuthenticationResponse.class))
+                    ),
+                    @ApiResponse(responseCode = "400", description = "Bad request",
+                            content = @Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = String.class))
+                    )
             }
     )
     public ResponseEntity<?> generateToken(@RequestBody CustomerLoginRequestBody request) {
