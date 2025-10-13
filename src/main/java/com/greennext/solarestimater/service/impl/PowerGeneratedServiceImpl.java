@@ -3,6 +3,7 @@ package com.greennext.solarestimater.service.impl;
 import com.greennext.solarestimater.Exception.SolarEstimatorException;
 import com.greennext.solarestimater.model.*;
 import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
+import com.greennext.solarestimater.model.dto.GraphDataPointDTO;
 import com.greennext.solarestimater.model.dto.SolarPlantDTO;
 import com.greennext.solarestimater.model.mapper.ResponseBodyMapper;
 import com.greennext.solarestimater.model.response.*;
@@ -19,7 +20,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.Year;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -319,6 +323,134 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @Override
+    public ResponseEntity<?> getGenerationGraphData(String userId) {
+        try {
+            // 1. Validate the user and get customer details
+            Customer customer = validateAndGetCustomer(userId);
+            SolarPlant plant = customer.getPlants().getFirst();
+            String plantId = String.valueOf(plant.getPid());
+
+            // 2. Prepare parameters for the API call
+            String salt = System.currentTimeMillis() + "";
+            // Format the current date to "yyyy-MM" for the monthly query
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+            String month = LocalDate.now().format(formatter);
+
+            // 3. Build the action string for the graph data endpoint
+            String action = PARAM_PREFIX + ACTION + EQUALS + ACTION_QUERY_PLANT_ENERGY_MONTH_PER_DAY +
+                    PARAM_PREFIX + PLANT_ID + EQUALS + plantId +
+                    PARAM_PREFIX + DATE + EQUALS + month;
+
+            // 4. Generate the signature and query parameters
+            String sign = generateSign(salt, customer, action);
+            Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
+
+            // 5. Make the API call
+            PlantEnergyGraphResponseBody responseBody = new PlantEnergyGraphResponseBody();
+            responseBody = (PlantEnergyGraphResponseBody) greenNxtWebClient.get(
+                    property.getInverterUrl(),
+                    responseBody,
+                    queryParams
+            );
+
+            // 6. Process the response
+            if (responseBody != null && responseBody.getErrorCode() == 0 && responseBody.getDataWrapper() != null) {
+                // Map the raw API response to a clean list of DTOs for the frontend
+                List<GraphDataPointDTO> graphData = ResponseBodyMapper.mapToGraphDataDTO(responseBody);
+                log.info("Successfully fetched graph data for month: {}", month);
+                return new ResponseEntity<>(graphData, HttpStatus.OK);
+            } else {
+                // Handle API errors
+                ErrorDetails error = new ErrorDetails(false, responseBody.getErrorCode(), responseBody.getDescription());
+                throw new SolarEstimatorException(error);
+            }
+        } catch (SolarEstimatorException e) {
+            log.error("Error fetching generation graph data: {}", e.getMessage());
+            throw new SolarEstimatorException(e.getErrorDetails());
+        } catch (Exception e) {
+            log.error("Unexpected error fetching generation graph data: {}", e.getMessage());
+            ErrorDetails error = new ErrorDetails(false, 1, "Failed to fetch graph data: " + e.getMessage());
+            throw new SolarEstimatorException(error);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> getGenerationGraphData(String userId, String type, String date) {
+        try {
+            // 1. Validate the user and get customer details
+            Customer customer = validateAndGetCustomer(userId);
+            SolarPlant plant = customer.getPlants().getFirst();
+            String plantId = String.valueOf(plant.getPid());
+
+            // 2. Prepare parameters for the API call based on the requested type
+            String salt = System.currentTimeMillis() + "";
+            String actionName;
+            String dateValue;
+            DateTimeFormatter formatter;
+
+            switch (type.toLowerCase()) {
+                case "day":
+                    actionName = ACTION_QUERY_PLANT_ACTIVE_POWER_ONE_DAY;
+                    formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                    dateValue = (date != null) ? LocalDate.parse(date, formatter).format(formatter) : LocalDate.now().format(formatter);
+                    break;
+
+                case "month":
+                    actionName = ACTION_QUERY_PLANT_ENERGY_MONTH_PER_DAY;
+                    formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+                    dateValue = (date != null) ? YearMonth.parse(date, formatter).format(formatter) : YearMonth.now().format(formatter);
+                    break;
+
+                case "year":
+                    actionName = ACTION_QUERY_PLANT_ENERGY_YEAR_PER_MONTH;
+                    formatter = DateTimeFormatter.ofPattern("yyyy");
+                    dateValue = (date != null) ? Year.parse(date, formatter).format(formatter) : Year.now().format(formatter);
+                    break;
+
+                default:
+                    throw new IllegalArgumentException("Invalid graph type specified. Allowed values are 'day', 'month', 'year'.");
+            }
+
+            // 3. Build the dynamic action string
+            String action = PARAM_PREFIX + ACTION + EQUALS + actionName +
+                    PARAM_PREFIX + PLANT_ID + EQUALS + plantId +
+                    PARAM_PREFIX + DATE + EQUALS + dateValue;
+
+            // 4. Generate the signature and query parameters
+            String sign = generateSign(salt, customer, action);
+            Map<String, String> queryParams = createQueryParams(sign, salt, customer.getToken(), action);
+
+            // 5. Make the API call
+            PlantEnergyGraphResponseBody responseBody = new PlantEnergyGraphResponseBody();
+            responseBody = (PlantEnergyGraphResponseBody) greenNxtWebClient.get(
+                    property.getInverterUrl(),
+                    responseBody,
+                    queryParams
+            );
+
+            // 6. Process the response
+            if (responseBody != null && responseBody.getErrorCode() == 0 && responseBody.getDataWrapper() != null) {
+                List<GraphDataPointDTO> graphData = ResponseBodyMapper.mapToGraphDataDTO(responseBody);
+                log.info("Successfully fetched graph data for type '{}' and date '{}'", type, dateValue);
+                return new ResponseEntity<>(graphData, HttpStatus.OK);
+            } else {
+                ErrorDetails error = new ErrorDetails(false, responseBody.getErrorCode(), responseBody.getDescription());
+                throw new SolarEstimatorException(error);
+            }
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            log.error("Invalid parameter for generation graph data: {}", e.getMessage());
+            throw new SolarEstimatorException(new ErrorDetails(false, 400, e.getMessage()));
+        } catch (SolarEstimatorException e) {
+            log.error("Error fetching generation graph data: {}", e.getMessage());
+            throw new SolarEstimatorException(e.getErrorDetails());
+        } catch (Exception e) {
+            log.error("Unexpected error fetching generation graph data: {}", e.getMessage());
+            ErrorDetails error = new ErrorDetails(false, 500, "Failed to fetch graph data: " + e.getMessage());
+            throw new SolarEstimatorException(error);
+        }
+    }
+
     private static PlantGenerationStats getPlantGenerationStats(double generationToday, float discount, float plantCapacity) {
         float savingsToday = (float) ((generationToday * 11) * discount);
         float generationMonthly = 0.0f;
@@ -338,7 +470,7 @@ public class PowerGeneratedServiceImpl implements PowerGeneratedService {
     }
 
     @Transactional
-    private void persistDailyGenerationData(LocalDate date, SolarPlant plant, DailyEnergyDTO dailyEnergyDto) {
+    protected void persistDailyGenerationData(LocalDate date, SolarPlant plant, DailyEnergyDTO dailyEnergyDto) {
         DailyEnergyGeneration dailyEnergyGeneration = dailyEnergyGenerationRepository.findByPlantAndDate(plant, date);
         if(dailyEnergyGeneration != null) {
             log.info("Updating existing daily energy record for date: {}", date);

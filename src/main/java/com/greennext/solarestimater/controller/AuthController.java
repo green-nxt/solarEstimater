@@ -6,6 +6,7 @@ import com.greennext.solarestimater.model.request.LoginRequestBody;
 import com.greennext.solarestimater.model.response.AuthenticationResponse;
 import com.greennext.solarestimater.security.JwtUtil;
 import com.greennext.solarestimater.service.PowerGeneratedService;
+import com.greennext.solarestimater.service.ShineMonitorOpenApi;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,10 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
