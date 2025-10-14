@@ -19,7 +19,5 @@ public interface PowerGeneratedService {
     ResponseEntity<?> getEnergyByMonth(String userId, LocalDate date);
     ResponseEntity<?> getGenerationStats(String userId);
 
-    ResponseEntity<?> getGenerationGraphData(String userName);
-
     ResponseEntity<?> getGenerationGraphData(String userName, String type, String date);
 }

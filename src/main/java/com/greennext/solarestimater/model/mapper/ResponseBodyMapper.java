@@ -72,7 +72,7 @@ public class ResponseBodyMapper {
         return dto;
     }
 
-    public static List<GraphDataPointDTO> mapToGraphDataDTO(PlantEnergyGraphResponseBody responseBody) {
+    public List<GraphDataPointDTO> mapToGraphDataDTO(PlantEnergyGraphResponseBody responseBody) {
         if (responseBody == null) {
             return new ArrayList<>();
         }

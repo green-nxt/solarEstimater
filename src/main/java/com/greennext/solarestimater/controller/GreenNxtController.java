@@ -2,7 +2,6 @@ package com.greennext.solarestimater.controller;
 
 import com.greennext.solarestimater.model.ErrorDetails;
 import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
-import com.greennext.solarestimater.model.dto.GraphDataPointDTO;
 import com.greennext.solarestimater.model.response.AllPlantsInfoResponseBody;
 import com.greennext.solarestimater.model.response.PlantGenerationStats;
 import com.greennext.solarestimater.service.PowerGeneratedService;
@@ -130,21 +129,6 @@ public class GreenNxtController {
         return ResponseEntity.ok(powerGeneratedService.getGenerationStats(userName));
     }
 
-//    @GetMapping("/generation/graph")
-//    @Operation(summary = "Get Generation Graph Data", description = "Retrieve data for generation graph for the authenticated user")
-//    @ApiResponses(
-//            value = {
-//                    @ApiResponse(responseCode = "200", description = "Successfully retrieved generation graph data",
-//                            content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = GraphDataPointDTO.class))),
-//                    @ApiResponse(responseCode = "401", description = "Unauthorized access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class))),
-//                    @ApiResponse(responseCode = "403", description = "Forbidden access", content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json", schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = ErrorDetails.class)))
-//            }
-//    )
-//    public ResponseEntity<?> getGenerationGraphData(Authentication authentication) {
-//        String userName = authentication.getName();
-//        log.info("Received request to get generation graph data for user: {}", userName);
-//        return ResponseEntity.ok(powerGeneratedService.getGenerationGraphData(userName));
-//    }
 
     @GetMapping("/generation/graph")
     @Operation(
