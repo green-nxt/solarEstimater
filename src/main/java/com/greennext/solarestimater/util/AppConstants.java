@@ -28,4 +28,7 @@ public class AppConstants {
     public static final String DEFAULT_LANGUAGE = "zh_EN";
     public static final String PARAM_PREFIX = "&";
     public static final String EQUALS = "=";
+    public static final String ACTION_QUERY_PLANT_ENERGY_MONTH_PER_DAY = "queryPlantEnergyMonthPerDay";
+    public static final String ACTION_QUERY_PLANT_ACTIVE_POWER_ONE_DAY = "queryPlantActiveOuputPowerOneDay";
+    public static final String ACTION_QUERY_PLANT_ENERGY_YEAR_PER_MONTH = "queryPlantEnergyYearPerMonth";
 }

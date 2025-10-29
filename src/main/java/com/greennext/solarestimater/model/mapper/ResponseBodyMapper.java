@@ -4,13 +4,17 @@ import com.greennext.solarestimater.model.Address;
 import com.greennext.solarestimater.model.SolarPlant;
 import com.greennext.solarestimater.model.dto.AddressDTO;
 import com.greennext.solarestimater.model.dto.DailyEnergyDTO;
+import com.greennext.solarestimater.model.dto.GraphDataPointDTO;
 import com.greennext.solarestimater.model.dto.SolarPlantDTO;
 import com.greennext.solarestimater.model.response.AllPlantsInfoResponseBody;
 import com.greennext.solarestimater.model.response.PlantEnergyGenerationResponseBody;
+import com.greennext.solarestimater.model.response.PlantEnergyGraphResponseBody;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
@@ -66,5 +70,28 @@ public class ResponseBodyMapper {
         dto.setSuccess(true);
         dto.setEnergy(response.getEnergyData().getEnergy());
         return dto;
+    }
+
+    public List<GraphDataPointDTO> mapToGraphDataDTO(PlantEnergyGraphResponseBody responseBody) {
+        if (responseBody == null) {
+            return new ArrayList<>();
+        }
+
+        // Use the new helper method to get the correct list
+        List<Map<String, String>> dataPoints = responseBody.extractDataPoints();
+
+        if (dataPoints == null || dataPoints.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return dataPoints.stream()
+                .map(point -> {
+                    GraphDataPointDTO dto = new GraphDataPointDTO();
+                    // The keys "val" and "ts" are consistent across all responses
+                    dto.setValue(Double.parseDouble(point.get("val")));
+                    dto.setTimestamp(point.get("ts"));
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 }

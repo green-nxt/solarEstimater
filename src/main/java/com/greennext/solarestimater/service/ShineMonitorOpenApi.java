@@ -17,6 +17,8 @@ public class ShineMonitorOpenApi {
         ShineMonitorOpenApi.inquirePlantInfo();
         inquirePlantGenerationByDay();
         passwordEncoder();
+        queryDataCollector();
+        queryDeviceEnergyMonthPerDay();
     }
 
     /**
@@ -81,13 +83,13 @@ public class ShineMonitorOpenApi {
     }
 
     private static void inquirePlantInfo() {
-        String secret = "234c8e69d6603807fcacf83022d1c98453fcf136";
-        String token= "8afcfb5d45ac207c73189f8bd005546f8afcb6f5e072ef4532ccc1ba2f504292";
-        String pn = "Q0029242327775";
-        String sn = "KSY0222HK1828";
+        String secret = "86846c6694a2f33cf8501cfc855fcc9a3b47dfba";
+        String token= "fd4a3d3438802dfadf6d2f94f83a738a9e262cc87e84a56ea31c91f8cf04d0eb";
+        String pn = "I30000230543823968";
+        String sn = "KSY0625HT18768";
         int devcode = 632;
         int devaddr = 1;
-        String date = "2025-09-08";
+        String date = "2025-10-08";
         String salt = System.currentTimeMillis() + "";
         String action = "&action=queryDeviceDataOneDay&i18n=zh_EN&pn="+pn+"&devcode="
                 +devcode+"&devaddr="+devaddr+"&sn="+sn+"&date="+date;
@@ -100,10 +102,10 @@ public class ShineMonitorOpenApi {
     }
 
     private static void inquirePlantGenerationByDay() {
-        String secret = "234c8e69d6603807fcacf83022d1c98453fcf136";
-        String token= "8afcfb5d45ac207c73189f8bd005546f8afcb6f5e072ef4532ccc1ba2f504292";
-        String plantId = "1228998";
-        String date = "2025";
+        String secret = "86846c6694a2f33cf8501cfc855fcc9a3b47dfba";
+        String token= "fd4a3d3438802dfadf6d2f94f83a738a9e262cc87e84a56ea31c91f8cf04d0eb";
+        String plantId = "1443652";
+        String date = "2025-10-10";
         String salt = System.currentTimeMillis() + "";
         String action = "&action=queryPlantEnergyDay&plantid="+plantId;
 
@@ -118,5 +120,85 @@ public class ShineMonitorOpenApi {
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         String rawPassword = "green_nxt@123";
         System.out.println("Encoded password: " + passwordEncoder.encode(rawPassword));
+    }
+
+//     Query data collector
+    private static void  queryDataCollector(){
+        String secret = "86846c6694a2f33cf8501cfc855fcc9a3b47dfba";
+        String token= "fd4a3d3438802dfadf6d2f94f83a738a9e262cc87e84a56ea31c91f8cf04d0eb";
+        String plantId = "1443652";
+        String date = "2025-10-10";
+        String salt = System.currentTimeMillis() + "";
+        String action = "&action=queryCollectors";
+        String sign = CryptoUtil.sha1ToLowerCase((salt + secret
+                + token + action).getBytes());
+        String request = OPEN_API_URI + "?sign=" +
+                sign + "&salt=" + salt + "&token=" + token + action;
+        System.out.println("generation PlantInfo ==> "+request);
+    }
+
+    /**
+     * Query the power output of inverter or other power
+     * generation equipment in a certain day
+     *
+     * Parameter Description Required
+     * action queryDeviceEnergyDay yes
+     * pn Pn of data collector yes
+     * devcode Equipment protocol code yes
+     * devaddr Device address (485 bus) yes
+     * sn Equipment serial number yes
+     * **/
+    private static void queryDeviceGenerationByDay() {
+        String secret = "86846c6694a2f33cf8501cfc855fcc9a3b47dfba";
+        String token= "fd4a3d3438802dfadf6d2f94f83a738a9e262cc87e84a56ea31c91f8cf04d0eb";
+        String pn = "I30000230543823968";
+        String sn = "KSY0625HT18768";
+        int devcode = 632;
+        int devaddr = 1;
+        String date = "2025-10-08";
+        String salt = System.currentTimeMillis() + "";
+        String action = "&action=queryDeviceEnergyDay&i18n=zh_EN&pn="+pn+"&devcode="
+                +devcode+"&devaddr="+devaddr+"&sn="+sn+"&date="+date;
+        String sign = CryptoUtil.sha1ToLowerCase((salt + secret
+                + token + action).getBytes());
+        String request = OPEN_API_URI + "?sign=" +
+                sign + "&salt=" + salt + "&token=" + token + action;
+        System.out.println("inquire PlantInfo ==> "+request);
+    }
+
+    /**
+     * Query the daily power output of an inverter for a specific month.
+     * This data is used to generate a graph.
+     * Based on API doc section 6.4.
+     */
+    private static void queryDeviceEnergyMonthPerDay() {
+        // Use the same secret and token from your successful login
+        String secret = "86846c6694a2f33cf8501cfc855fcc9a3b47dfba";
+        String token = "fd4a3d3438802dfadf6d2f94f83a738a9e262cc87e84a56ea31c91f8cf04d0eb";
+
+        // --- Device Identification Parameters ---
+        String pn = "I30000230543823968"; // Data collector PN [cite: 1146]
+        String sn = "KSY0625HT18768";      // Equipment serial number [cite: 1146]
+        int devcode = 632;                 // Equipment protocol code [cite: 1146]
+        int devaddr = 1;                   // Device address (485 bus) [cite: 1146]
+
+        // --- Date Parameter (Year and Month) ---
+        String date = "2025-10"; // The month to query in "yyyy-mm" format [cite: 1146]
+
+        String salt = System.currentTimeMillis() + "";
+
+        // Construct the action string for the API call
+        String action = "&action=queryDeviceEnergyMonthPerDay&pn=" + pn + "&devcode="
+                + devcode + "&devaddr=" + devaddr + "&sn=" + sn + "&date=" + date;
+
+        // Calculate the signature
+        String sign = CryptoUtil.sha1ToLowerCase((salt + secret
+                + token + action).getBytes());
+
+        // Build the final request URL
+        String request = OPEN_API_URI + "?sign=" +
+                sign + "&salt=" + salt + "&token=" + token + action;
+
+        System.out.println("Graph Data URL ==> " + request);
     }
 }
