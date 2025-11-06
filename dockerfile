@@ -1,14 +1,42 @@
-# Use OpenJDK 21 as the base image
-FROM openjdk:21-jdk-slim
+# ---- Build Stage ----
+FROM gradle:8.10.2-jdk21-jammy AS builder
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy the WAR file from the build directory to the container
-COPY build/libs/solarestimater-0.0.1-SNAPSHOT.war app.war
+# Copy only build configuration first (for better caching)
+COPY build.gradle settings.gradle gradlew ./
+COPY gradle gradle
 
-# Expose the port your Spring Boot app runs on
+# Download dependencies (cached between builds)
+RUN ./gradlew dependencies || return 0
+
+# Copy the rest of the project
+COPY . .
+
+# Build the WAR file
+RUN ./gradlew clean build -x test
+
+# ---- Runtime Stage ----
+FROM eclipse-temurin:21-jdk-jammy
+
+WORKDIR /app
+
+# Copy the WAR file from the build stage
+COPY --from=builder /app/build/libs/*.war app.war
+
+# Define build arguments for database configuration
+ARG DB_URL
+ARG DB_USERNAME
+ARG DB_PASSWORD
+
+# Set environment variables for database configuration
+ENV DB_URL=${DB_URL}
+ENV DB_USERNAME=${DB_USERNAME}
+ENV DB_PASSWORD=${DB_PASSWORD}
+
+# Expose the application port
 EXPOSE 8080
 
-# Run the WAR file directly (Spring Boot executable WAR)
+# Run the WAR
 ENTRYPOINT ["java", "-jar", "/app/app.war"]
